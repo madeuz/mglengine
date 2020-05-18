@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<title>MglEngine Test</title>
+
+<span id="fps" style="float:right;">0fps</span>
+<canvas width="1200" height="840"></canvas>
+		
+<meta charset="utf-8" />
+	
+<script type="text/javascript" src="../lib/mgl/core/Mgl.js"></script>
+<script type="text/javascript" src="../lib/mgl/core/Console.js"></script>
+<script type="text/javascript" src="../lib/mgl/core/ResourceManager.js"></script>
+
+<script type="text/javascript" src="../lib/mgl/core/Event.js"></script>
+<script type="text/javascript" src="../lib/mgl/core/Observable.js"></script>
+<script type="text/javascript" src="../lib/mgl/core/Loader.js"></script>
+<script type="text/javascript" src="../lib/mgl/core/Renderer.js"></script>
+<script type="text/javascript" src="../lib/mgl/core/Shader.js"></script>
+<script type="text/javascript" src="../lib/mgl/core/Texture2D.js"></script>
+
+<script type="text/javascript" src="../lib/mgl/drawables/Drawable.js"></script>
+<script type="text/javascript" src="../lib/mgl/drawables/Scene.js"></script>
+<script type="text/javascript" src="../lib/mgl/drawables/Camera.js"></script>
+<script type="text/javascript" src="../lib/mgl/drawables/Geometry.js"></script>
+<script type="text/javascript" src="../lib/mgl/drawables/Mesh.js"></script>
+<script type="text/javascript" src="../lib/mgl/drawables/SkeletalMesh.js"></script>
+<script type="text/javascript" src="../lib/mgl/drawables/Terrain.js"></script>
+<script type="text/javascript" src="../lib/mgl/drawables/TiledTerrain.js"></script>
+
+<script type="text/javascript" src="../lib/mgl/readers/ObjReader.js"></script>
+<script type="text/javascript" src="../lib/mgl/readers/SmdReader.js"></script>
+<script type="text/javascript" src="../lib/mgl/readers/DataView.js"></script>
+<script type="text/javascript" src="../lib/mgl/readers/PskReader.js"></script>
+
+<script type="text/javascript" src="../lib/mgl/utils/Color.js"></script>
+<script type="text/javascript" src="../lib/mgl/utils/Math.js"></script>
+<script type="text/javascript" src="../lib/mgl/utils/Vec3.js"></script>
+<script type="text/javascript" src="../lib/mgl/utils/Mat3.js"></script>
+<script type="text/javascript" src="../lib/mgl/utils/Mat4.js"></script>
+<script type="text/javascript" src="../lib/mgl/utils/Quat4.js"></script>
+		
+<script type="text/javascript" src="../tools/webgl-debug.js"></script>
+
+<script type="text/javascript">
+	window.onload = function(){
+		mgl.shaderPath = '../shaders/';
+		
+		var canvas = document.getElementsByTagName('canvas')[0];
+		var camera = new mgl.Camera({aspect: canvas.width / canvas.height, far: 1000});/////////////////////// uCmvMatrix
+		var scene = new mgl.Scene({camera: camera, background: new mgl.Color('silver')});
+		var renderer = new mgl.Renderer(canvas);
+		renderer.gl = WebGLDebugUtils.makeDebugContext(renderer.gl);
+		renderer.setScene(scene);
+		
+		var currentlyPressedKeys = {};
+
+		var handleKeyDown = function(event) {
+			event.preventDefault();
+			currentlyPressedKeys[event.keyCode] = true;
+		}
+
+		var handleKeyUp = function(event) {
+			event.preventDefault();
+			currentlyPressedKeys[event.keyCode] = false;
+		}
+		
+		document.onkeydown = handleKeyDown;
+		document.onkeyup = handleKeyUp;
+		
+		var ticks = 0, m = mat4.create(), worldUp = vec3.create([0, 1, 0]), up = vec3.create();
+		renderer.afterDraw = function(){
+			ticks++;
+			if(currentlyPressedKeys[38]){
+				camera.translate([camera.mvMatrix[2]*0.5, camera.mvMatrix[6]*0.5, camera.mvMatrix[10]*0.5]);
+			}
+			if(currentlyPressedKeys[40]){
+				camera.translate([-camera.mvMatrix[2]*0.5, -camera.mvMatrix[6]*0.5, -camera.mvMatrix[10]*0.5]);
+			}
+			if(currentlyPressedKeys[33]){
+				mat4.identity(m);
+				mat4.rotateX(m, -Math.PI / 180);
+				mat4.multiply(camera.mvMatrix, m);
+			}
+			if(currentlyPressedKeys[34]){
+				mat4.identity(m);
+				mat4.rotateX(m, Math.PI / 180);
+				mat4.multiply(camera.mvMatrix, m);
+			}
+			if(currentlyPressedKeys[37]){
+				mat4.identity(m);
+				mat4.rotateY(m, -Math.PI / 180);
+				mat4.multiply(camera.mvMatrix, m);
+				/*
+				up = mat3.multiplyVec3(camera.mvMatrix, worldUp, up)
+				vec3.cross([camera.mvMatrix[2], camera.mvMatrix[6], camera.mvMatrix[10]], worldUp, up);
+				vec3.cross(up, [camera.mvMatrix[2], camera.mvMatrix[6], camera.mvMatrix[10]]);
+				vec3.normalize(up);
+				mat4.identity(m);
+				mat4.rotate(m, -Math.PI / 180, [-up[0], up[1], -up[2]]);
+				mat4.multiply(camera.mvMatrix, m);
+				*/
+			}
+			if(currentlyPressedKeys[39]){
+				mat4.identity(m);
+				mat4.rotateY(m, Math.PI / 180);
+				mat4.multiply(camera.mvMatrix, m);
+				/*
+				up = mat3.multiplyVec3(camera.mvMatrix, worldUp, up)
+				vec3.cross([camera.mvMatrix[2], camera.mvMatrix[6], camera.mvMatrix[10]], worldUp, up);
+				vec3.cross(up, [camera.mvMatrix[2], camera.mvMatrix[6], camera.mvMatrix[10]]);
+				vec3.normalize(up);
+				mat4.identity(m);
+				mat4.rotate(m, Math.PI / 180, [-up[0], up[1], -up[2]]);
+				mat4.multiply(camera.mvMatrix, m);
+				*/
+			}
+		};
+		setInterval(function(){document.getElementById('fps').innerHTML = ticks+' fps';ticks=0;}, 1000);
+		
+		renderer.animate();
+		
+		var terrain = new mgl.Terrain();
+		
+		terrain.ambientColor = new mgl.Color('222');
+		terrain.lightingDirection = vec3.create([0.0, -.5, -2]);
+		terrain.directionalColor = new mgl.Color('fff');
+		
+		terrain.heightMapUrl = 'assets/FalklandIslands.png';
+		terrain.heightScale = 20;
+		
+		terrain.lowTextureUrl = 'assets/sand.jpg';
+		terrain.middleTextureUrl = 'assets/grass.jpg';
+		terrain.highTextureUrl = 'assets/rock.jpg';
+		terrain.textureRanges = [0, 0.2, 0.8];
+		
+		terrain.residualTextureUrl = 'assets/bump.png';
+		terrain.textureScales = [300, 300, 300, 500];
+		
+		camera.translate([0, -6, 0]);
+		//camera.rotateX(Math.PI/10.0);
+		
+		scene.add(terrain);
+	}
+</script>
+		

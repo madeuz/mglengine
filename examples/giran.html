@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>MglEngine Test</title>
+		
+		<meta charset="utf-8" />
+		
+		<script type="text/javascript" src="../lib/mgl/core/Mgl.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Console.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/ResourceManager.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/core/Event.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Observable.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Loader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Renderer.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Shader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Texture2D.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/drawables/Drawable.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Scene.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Camera.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Geometry.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Mesh.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/SkeletalMesh.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Terrain.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/TiledTerrain.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/readers/ObjReader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/readers/SmdReader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/readers/DataView.js"></script>
+		<script type="text/javascript" src="../lib/mgl/readers/PskReader.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/utils/Color.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Math.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Vec3.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Mat3.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Mat4.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Quat4.js"></script>
+		
+		<script type="text/javascript">
+			window.onload = function(){
+				
+				/*var audio = new Audio();
+				audio.addEventListener('ended', function () {
+					audio.play();
+				}, false);
+				audio.src = 'assets/Giran_Village/theme.ogg';
+				audio.play();*/
+			
+				var canvas = document.getElementsByTagName('canvas')[0];
+
+				var camera = new mgl.Camera({aspect: canvas.width / canvas.height, far: 30000});
+				var scene = new mgl.Scene({camera: camera, background: new mgl.Color('silver')});
+				var renderer = new mgl.Renderer(canvas);
+				renderer.setScene(scene);
+				
+				camera.translate([0, -1200, -10500]);
+				
+				var rotateObj = function(){
+					camera.rotateY(Math.PI/500);
+					setTimeout(rotateObj, 10);
+				}
+				rotateObj();
+				
+				renderer.animate();
+				
+				mgl.shaderPath = '../shaders/';
+				
+				scene.load('assets/Giran_Village/Giran_Village.js');
+			}
+		</script>
+	</head>
+	<body>
+		<canvas width="800" height="600"></canvas>
+	</body>
+</html>

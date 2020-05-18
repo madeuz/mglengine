@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>MglEngine Test</title>
+		
+		<meta charset="utf-8" />
+		
+		<script type="text/javascript" src="../lib/mgl/core/Mgl.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Console.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/ResourceManager.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/core/Event.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Observable.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Loader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Renderer.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Shader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Texture2D.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/drawables/Drawable.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Scene.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Camera.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Geometry.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Mesh.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/SkeletalMesh.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Terrain.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/TiledTerrain.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/readers/ObjReader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/readers/SmdReader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/readers/DataView.js"></script>
+		<script type="text/javascript" src="../lib/mgl/readers/PskReader.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/utils/Color.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Math.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Vec3.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Mat3.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Mat4.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Quat4.js"></script>
+		
+		<script type="text/javascript">
+			window.onload = function(){
+				var canvas = document.getElementsByTagName('canvas')[0];
+				
+				
+				var camera = new mgl.Camera({aspect: canvas.width / canvas.height});
+				var scene = new mgl.Scene({camera: camera, background: false});
+				var renderer = new mgl.Renderer(canvas);
+				renderer.setScene(scene);
+				
+				var mouseDown = false;
+				var lastMouseX = null;
+				var lastMouseY = null;
+				
+				var objs = [];
+
+				var handleMouseDown = function(event) {
+					mouseDown = true;
+					lastMouseX = event.clientX;
+					lastMouseY = event.clientY;
+				}
+
+
+				var handleMouseUp = function(event) {
+					mouseDown = false;
+				}
+
+
+				var handleMouseMove = function(event) {
+					if (!mouseDown) {
+						return;
+					}
+					var newX = event.clientX;
+					var newY = event.clientY;
+						
+					var deltaX = newX - lastMouseX
+					for(var i = 0; i < objs.length; i++)
+						objs[i].rotateZ(mgl.Math.degToRad(deltaX));
+					
+					var deltaY = newY - lastMouseY;
+					for(var i = 0; i < objs.length; i++){
+						objs[i].rotateX(-Math.sin(objs[i].rotationZ-Math.PI/2)*mgl.Math.degToRad(deltaY));
+						objs[i].rotateY(-Math.cos(objs[i].rotationZ-Math.PI/2)*mgl.Math.degToRad(deltaY));
+					}
+
+					lastMouseX = newX
+					lastMouseY = newY;
+				}
+				
+				canvas.onmousedown = handleMouseDown;
+				document.onmouseup = handleMouseUp;
+				document.onmousemove = handleMouseMove;
+
+				
+				renderer.animate();
+				
+				mgl.shaderPath = '../shaders/';
+				
+				var loader = new mgl.Loader();
+				loader.on('load', function(data){
+					var reader = new mgl.ObjReader(data);
+					
+					var obj = new mgl.Mesh();
+
+					obj.vertices = reader.vertices;
+					obj.normals = reader.normals;
+					obj.texCoords = reader.texCoords;
+					obj.indices = reader.indices;
+					
+					obj.ambientColor = new mgl.Color('020202');
+					obj.lightingDirection = vec3.create([0.0, 0.0, 1.0]);
+					obj.directionalColor = new mgl.Color('ffffff');
+					
+					obj.textureUrl = 'assets/blank.png';
+					
+					obj.translate([0, -10, -50]);
+					obj.scale([.1,.1,.1]);
+					obj.rotateZ(-Math.PI/2);
+					obj.rotateY(-Math.PI/2);
+	
+					var rotateCube = function(){
+						obj.rotateZ(Math.PI/480.0);
+						setTimeout(rotateCube, 10);
+					}
+					//rotateCube();
+					objs.push(obj);
+										
+					scene.add(obj);
+				});
+				loader.loadTextFile('assets/cup-model.obj');
+				
+				var loader1 = new mgl.Loader();
+				loader1.on('load', function(data){
+					var reader = new mgl.ObjReader(data);
+					
+					var obj = new mgl.Mesh();
+
+					obj.vertices = reader.vertices;
+					obj.normals = reader.normals;
+					obj.texCoords = reader.texCoords;
+					obj.indices = reader.indices;
+					
+					obj.ambientColor = new mgl.Color('020202');
+					obj.lightingDirection = vec3.create([0.0, 0.0, 1.0]);
+					obj.directionalColor = new mgl.Color('ffffff');
+					
+					// create the preview's material
+					var size = 200;
+					var text = "dzia³a :)";
+					var backgroundMargin = 10;
+					var color = 'red';
+					var canvas = document.createElement("canvas");
+
+					canvas.width = 512;
+					canvas.height = 512;
+					
+					var context = canvas.getContext("2d");
+					context.font = size + "pt Arial";
+					
+					var textWidth = context.measureText(text).width;
+					context.font = size + "pt Arial";
+
+					context.fillStyle = 'white';
+					context.fillRect(canvas.width / 2 - textWidth / 2 - backgroundMargin / 2, canvas.height / 2 - size / 2 - +backgroundMargin / 2, textWidth + backgroundMargin, size + backgroundMargin);
+
+					context.textAlign = "center";
+					context.textBaseline = "middle";
+					context.fillStyle = color;
+					
+					
+					var img = new Image;
+					img.onload = function(){
+						context.drawImage(img,0,0,canvas.width,canvas.height);
+						//context.fillText(text, canvas.width / 2, canvas.height / 2);
+						
+						scene.add(obj);
+					}
+					img.src = 'assets/gejsze.jpg?'+new Date().getTime();
+					
+					obj.textureElement = canvas;
+					
+					obj.translate([0, -10, -50]);
+					obj.scale([.1,.1,.1]);
+					obj.rotateZ(-Math.PI/2);
+					obj.rotateY(-Math.PI/2);
+	
+					var rotateCube = function(){
+						obj.rotateZ(Math.PI/480.0);
+						setTimeout(rotateCube, 10);
+					}
+					//rotateCube();
+					objs.push(obj);
+					
+					//scene.add(obj);
+				});
+				loader1.loadTextFile('assets/cup-texture.obj');
+			}
+		</script>
+	</head>
+	<body>
+		<canvas width="800" height="600"></canvas>
+	</body>
+</html>

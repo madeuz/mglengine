@@ -19,25 +19,30 @@ uniform int uSkeleton[MAX_BONES_COUNT];
 varying vec2 vTextureCoord;
 varying vec3 vTransformedNormal;
 
-mat4 getLocalMatrix(in int bone){
+mat4 getWorldMatrix(in int bone){
 	vec3 p = texture2D(uAnimPos, vec2((float(bone) + .5) / float(uDataWidth.x), uTimescale)).xyz;
 	vec4 q = texture2D(uAnimQuat, vec2((float(bone) + .5) / float(uDataWidth.x), uTimescale));
-	
-	vec3 q2 = pow(q.xyz, vec3(2.0));
-	return mat4(1.0-2.0*q2.y-2.0*q2.z, 2.0*q.x*q.y-2.0*q.z*q.w, 2.0*q.x*q.z+2.0*q.y*q.w, 0.0, 
+    vec3 q2 = pow(q.xyz, vec3(2.0));
+    
+	mat4 world = mat4(1.0-2.0*q2.y-2.0*q2.z, 2.0*q.x*q.y-2.0*q.z*q.w, 2.0*q.x*q.z+2.0*q.y*q.w, 0.0, 
 				2.0*q.x*q.y+2.0*q.z*q.w, 1.0-2.0*q2.x-2.0*q2.z, 2.0*q.y*q.z-2.0*q.x*q.w, 0.0, 
 				2.0*q.x*q.z-2.0*q.y*q.w, 2.0*q.y*q.z+2.0*q.x*q.w, 1.0-2.0*q2.x-2.0*q2.y, 0.0, 
 				p.x, p.y, p.z, 1.0);
-}
-
-mat4 getWorldMatrix(in int bone){
-	int parent = bone;
-	mat4 world = getLocalMatrix(parent);
+    
+    int parent = bone;    
 	for(int i = 0; i < MAX_BONES_DEEP; i++){
 		parent = uSkeleton[parent];
 		if(parent == -1) 
 			break;
-		world = getLocalMatrix(parent) * world;
+            
+        p = texture2D(uAnimPos, vec2((float(parent) + .5) / float(uDataWidth.x), uTimescale)).xyz;
+        q = texture2D(uAnimQuat, vec2((float(parent) + .5) / float(uDataWidth.x), uTimescale));
+        q2 = pow(q.xyz, vec3(2.0));
+        
+		world = mat4(1.0-2.0*q2.y-2.0*q2.z, 2.0*q.x*q.y-2.0*q.z*q.w, 2.0*q.x*q.z+2.0*q.y*q.w, 0.0, 
+				2.0*q.x*q.y+2.0*q.z*q.w, 1.0-2.0*q2.x-2.0*q2.z, 2.0*q.y*q.z-2.0*q.x*q.w, 0.0, 
+				2.0*q.x*q.z-2.0*q.y*q.w, 2.0*q.y*q.z+2.0*q.x*q.w, 1.0-2.0*q2.x-2.0*q2.y, 0.0, 
+				p.x, p.y, p.z, 1.0) * world;
 	}
 	return world;
 }

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>MglEngine Test</title>
+		
+		<meta charset="utf-8" />
+		
+		<script type="text/javascript" src="../lib/mgl/core/Mgl.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Console.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/ResourceManager.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/core/Event.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Observable.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Loader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Renderer.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Shader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/core/Texture2D.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/drawables/Drawable.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Scene.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Camera.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Geometry.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Mesh.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/SkeletalMesh.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/Terrain.js"></script>
+		<script type="text/javascript" src="../lib/mgl/drawables/TiledTerrain.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/readers/ObjReader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/readers/SmdReader.js"></script>
+		<script type="text/javascript" src="../lib/mgl/readers/DataView.js"></script>
+		<script type="text/javascript" src="../lib/mgl/readers/PskReader.js"></script>
+		
+		<script type="text/javascript" src="../lib/mgl/utils/Color.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Math.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Vec3.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Mat3.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Mat4.js"></script>
+		<script type="text/javascript" src="../lib/mgl/utils/Quat4.js"></script>
+		
+		<script type="text/javascript" src="../tools/webgl-debug.js"></script>
+		
+		<script type="text/javascript">
+			window.onload = function(){
+				var canvas = document.getElementsByTagName('canvas')[0];
+
+				var camera = new mgl.Camera({aspect: canvas.width / canvas.height, id: 'Camera'});
+				var scene = new mgl.Scene({camera: camera, background: new mgl.Color('silver')});
+				var renderer = new mgl.Renderer(canvas);
+				renderer.gl = WebGLDebugUtils.makeDebugContext(renderer.gl);
+				renderer.setScene(scene);
+				
+				var ticks = 0;
+				renderer.afterDraw = function(){ticks++};
+				setInterval(function(){document.getElementById('fps').innerHTML = ticks+' fps';ticks=0;}, 1000);
+				
+				renderer.animate();
+				
+				mgl.shaderPath = '../shaders/';
+				
+				var dwarfParts = [
+					{mesh: 'FDwarf_m000_b', texture: 'FDwarf_m000_t1000_b'},
+					{mesh: 'FDwarf_m000_l', texture: 'FDwarf_m000_t1000_l'},
+					{mesh: 'FDwarf_m000_u', texture: 'FDwarf_m000_t1000_u'},
+					{mesh: 'FDwarf_m000_g', texture: 'FDwarf_m000_t1000_g'},
+					{mesh: 'FDwarf_m000_f', texture: 'FDwarf_m000_t00_f'},
+					{mesh: 'FDwarf_m000_m00_ah', texture: 'FDwarf_m000_t00_m00_ah'},
+					{mesh: 'FDwarf_m000_m00_bh', texture: 'FDwarf_m000_t00_m00_bh'}
+				];
+				
+				var parts = {};
+				var numLoaded = 0;
+				
+				var bones, bindPose;
+								
+				var loadDwarfPart = function(part){
+								
+					var loader = new mgl.Loader();
+					loader.on('load', function(data){
+						var reader = new mgl.SmdReader(data);
+						
+						var obj = new mgl.SkeletalMesh('FDwarf');
+						obj.vertices = reader.vertices;
+						obj.normals = reader.normals;
+						obj.texCoords = reader.texCoords;
+						obj.indices = reader.indices;
+												
+						var links = new Float32Array(reader.links.length*4);
+						var weights = new Float32Array(reader.links.length*4);
+						for(var i = 0, length = reader.links.length, b, w, j, len; i < length; i++){
+							b = [-1, -1, -1, -1];
+							w = [0, 0, 0, 0];
+							for(j = 0, len = reader.links[i].length; j < len; j++){
+								b[j] = reader.links[i][j].bone;
+								w[j] = reader.links[i][j].weight;
+							}
+							links.set(b, i * 4);
+							weights.set(w, i * 4);
+						}
+						obj.links = links;
+						obj.weights = weights;
+						
+						obj.ambientColor = new mgl.Color('020202');
+						obj.lightingDirection = vec3.create([0.0, 0.0, 1.0]);
+						obj.directionalColor = new mgl.Color('ffffff');
+						obj.textureUrl = 'assets/smd-fdwarf/'+part.texture+'.png';
+						obj.translate([0.0, -20.0, -60.0]);
+						obj.rotateX(-Math.PI/2);
+						
+						if(!bones){
+							bones = [];
+							for(var i = 0, length = reader.nodes.length; i < length; i++){
+								bones[i] = reader.nodes[i].parent;
+							}
+						}
+						obj.skeleton = bones;
+						
+						if(!bindPose){
+							bindPose = [];
+							for(var i = 0, length = reader.animationFrames[0].length, node; i < length; i++){
+								node = reader.animationFrames[0][i];
+								bindPose[i] = {
+									pos: vec3.create([node.posX, node.posY, node.posZ]),
+									quat: quat4.fromEuler([node.rotX, node.rotY, node.rotZ])
+								}
+							}
+						}
+						obj.bindPose = bindPose;
+						
+						numLoaded++;
+						parts[part.mesh] = obj;
+						if(numLoaded == dwarfParts.length){
+												
+							var loader1 = new mgl.Loader();
+							loader1.on('load', function(data){
+								var reader = new mgl.SmdReader(data);
+																
+								var animation = [];
+													
+								var node, pos, quat;
+								for(var i = 0, length = reader.animationFrames.length; i < length; i++){
+									animation[i] = [];
+									for(var j = 0, nodes = reader.nodes.length; j < nodes; j++){
+										node = reader.animationFrames[i][j];
+										pos = vec3.create([node.posX, node.posY, node.posZ]);
+										quat = quat4.fromEuler([node.rotX, node.rotY, node.rotZ]);
+										
+										if( i > 0 && quat4.dot(animation[i-1][j].quat, quat) < 0 )
+											quat4.negate(quat);
+										
+										animation[i][j] = { pos: pos, quat: quat }
+									}
+								}
+								
+								for(var dPart in dwarfParts){
+									var mPart = parts[dwarfParts[dPart].mesh];
+									
+									mPart.animation = {
+										id: 'Social_Couple_Dance_FDwarf',
+										data: animation
+									}
+																		
+									scene.add(mPart);
+								}
+								
+							});
+							loader1.loadTextFile('assets/smd-fdwarf/Social_Couple_Dance_FDwarf.smd');
+						
+						
+							var animateParts = function(){
+								for(var mPart in dwarfParts){
+									var partn = parts[dwarfParts[mPart].mesh];
+									partn.animFn.call(partn);
+								}
+								setTimeout(animateParts, 16);
+							}
+							animateParts();
+						}
+					});
+					loader.loadTextFile('assets/smd-fdwarf/'+part.mesh+'.smd');
+				}
+				
+				for(var part in dwarfParts){
+					loadDwarfPart(dwarfParts[part]);
+				}
+			}
+		</script>
+	</head>
+	<body>
+		<span id="fps" style="float:right;">0fps</span>
+		<canvas width="960" height="720" antialias="false"></canvas>
+	</body>
+</html>
